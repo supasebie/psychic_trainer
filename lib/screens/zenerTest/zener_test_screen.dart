@@ -1,5 +1,7 @@
-import 'package:flutter/material.dart';
 import 'dart:math'; // For generating random Zener cards
+import 'dart:ui'; // Required for ImageFilter.blur
+import 'package:flutter/material.dart';
+import 'package:rive/rive.dart' as rive; // Required for RiveAnimation
 
 // Enum to represent the Zener card symbols
 enum ZenerSymbol { circle, cross, waves, square, star }
@@ -169,130 +171,131 @@ class _ZenerTestScreenState extends State<ZenerTestScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // appBar: AppBar( // AppBar removed
-      //   title: const Text('Zener Card Test'),
-      //   backgroundColor: Colors.deepPurple.shade100,
-      // ),
-      backgroundColor: Colors.grey[100],
-      body: SafeArea(
-        // Added SafeArea to avoid overlap with status bar
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 20.0, horizontal: 16.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: <Widget>[
-              // Score and Position Counters
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  Text(
-                    'Attempt: ${_roundOver ? _totalAttemptsInRound : _currentDeckIndex + 1}/$_totalAttemptsInRound',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
+      // backgroundColor: Colors.grey[100], // Removed to allow blur to be visible
+      body: Stack(
+        // Added Stack for background elements
+        children: [
+          // Rive Background Animation (Bottom Layer)
+          const rive.RiveAnimation.asset(
+            "assets/animations/breathing.riv", // Your new Rive animation
+            fit: BoxFit.cover, // Ensure it covers the screen
+          ),
+          // Blur Effect (Middle Layer)
+          Positioned.fill(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(
+                sigmaX: 30,
+                sigmaY: 30,
+              ), // Same blur as onboarding
+              child: const SizedBox(),
+            ),
+          ),
+          // Original Screen Content (Top Layer)
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                vertical: 20.0,
+                horizontal: 16.0,
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: <Widget>[
+                  // Score and Position Counters
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      Text(
+                        'Attempt: ${_roundOver ? _totalAttemptsInRound : _currentDeckIndex + 1}/$_totalAttemptsInRound',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          color:
+                              Colors
+                                  .white, // Adjusted for better visibility on blurred background
+                        ),
+                      ),
+                      Text(
+                        'Correct: $_correctScore/$_totalAttemptsInRound',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          color:
+                              Colors
+                                  .white, // Adjusted for better visibility on blurred background
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+
+                  const SizedBox(height: 10),
+
+                  // Feedback Message Area
+                  SizedBox(
+                    height: 60, // Fixed height for feedback area
+                    child: Center(
+                      child: Text(
+                        _feedbackMessage,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color:
+                              _feedbackMessage.startsWith("Correct")
+                                  ? Colors
+                                      .green
+                                      .shade300 // Adjusted for visibility
+                                  : Colors
+                                      .red
+                                      .shade300, // Adjusted for visibility
+                          shadows: const [
+                            // Added shadow for better readability
+                            Shadow(
+                              blurRadius: 2.0,
+                              color: Colors.black54,
+                              offset: Offset(1.0, 1.0),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
-                  Text(
-                    'Correct: $_correctScore/$_totalAttemptsInRound',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
+
+                  // "Play Again" Button or Spacer
+                  if (_roundOver)
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.replay),
+                      label: const Text('Play Again'),
+                      onPressed: _startNewRound,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.deepPurple,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 30,
+                          vertical: 15,
+                        ),
+                        textStyle: const TextStyle(fontSize: 16),
+                      ),
+                    )
+                  else
+                    const SizedBox(height: 50),
+                  // Five selectable cards at the bottom
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children:
+                          _selectableSymbols
+                              .map((symbol) => _buildZenerSymbolCard(symbol))
+                              .toList(),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 10),
-
-              // Top large card (Target Card Area)
-              Center(
-                child: Card(
-                  elevation: 5.0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15.0),
-                  ),
-                  child: Container(
-                    width: 200,
-                    height: 280,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(15.0),
-                      border: Border.all(color: Colors.deepPurple, width: 2),
-                    ),
-                    child: Center(
-                      child:
-                          _showTargetSymbol && _currentTargetCard != null
-                              ? Icon(
-                                _currentTargetCard!.icon,
-                                size: 120,
-                                color: Colors.deepPurpleAccent,
-                              )
-                              : const Icon(
-                                Icons.question_mark_rounded,
-                                size: 100,
-                                color: Colors.deepPurpleAccent,
-                              ),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10),
-
-              // Feedback Message Area
-              SizedBox(
-                height: 60, // Fixed height for feedback area
-                child: Center(
-                  child: Text(
-                    _feedbackMessage,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color:
-                          _feedbackMessage.startsWith("Correct")
-                              ? Colors.green.shade700
-                              : Colors.red.shade700,
-                    ),
-                  ),
-                ),
-              ),
-
-              // "Play Again" Button or Spacer
-              if (_roundOver)
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.replay),
-                  label: const Text('Play Again'),
-                  onPressed: _startNewRound,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.deepPurple,
-                    foregroundColor:
-                        Colors
-                            .white, // Corrected from `primary` for newer Flutter versions
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 30,
-                      vertical: 15,
-                    ),
-                    textStyle: const TextStyle(fontSize: 16),
-                  ),
-                )
-              else
-                const SizedBox(
-                  height: 50,
-                ), // Spacer when play again button is not visible
-              // Five selectable cards at the bottom
-              Padding(
-                padding: const EdgeInsets.only(bottom: 16.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children:
-                      _selectableSymbols
-                          .map((symbol) => _buildZenerSymbolCard(symbol))
-                          .toList(),
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
