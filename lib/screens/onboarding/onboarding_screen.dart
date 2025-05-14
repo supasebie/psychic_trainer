@@ -2,7 +2,6 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:psychic_trainer/screens/riveSandbox/rivesandbox_screen.dart';
-import 'package:psychic_trainer/screens/zenerTest/zener_test_screen.dart';
 import 'package:rive/rive.dart' as rive;
 import 'widgets/animated_btn.dart';
 // import 'components/sign_in_dialog.dart'; // Removed as showCustomDialog is no longer used
